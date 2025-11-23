@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DemoBlockChainProjectTeam8</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        'primary': '#2563EB', // Blue 600
+                        'secondary': '#F59E0B', // Amber 500
+                        'valid': '#10B981',
+                        'invalid': '#EF4444',
+                        'dark': '#1E293B'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 35px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 5px;
+            bottom: 0;
+            width: 2px;
+            background-color: #e5e7eb;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 30px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 6px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: white;
+            border: 4px solid var(--tw-primary);
+            z-index: 10;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 font-sans text-slate-800 min-h-screen flex flex-col">
+
+    <!-- NAVBAR -->
+    <nav class="bg-dark text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="goHome()">
+                <div class="bg-primary p-2 rounded-lg shadow-lg"><i class="fa-solid fa-cubes fa-lg"></i></div>
+                <span class="font-bold text-xl tracking-wide">DemoBlockChain<span
+                        class="text-primary font-extrabold">ProjectTeam8</span></span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="factoryReset()"
+                    class="text-xs text-red-400 hover:text-red-300 border border-red-900 bg-red-900/30 px-2 py-1 rounded"
+                    title="Xóa hết dữ liệu đã tạo">
+                    <i class="fa-solid fa-trash-can"></i> Xóa dữ liệu
+                </button>
+                <button onclick="goHome()"
+                    class="text-sm font-medium text-slate-300 hover:text-white transition flex items-center gap-2">
+                    <i class="fa-solid fa-house"></i> <span class="hidden sm:inline">Trang chủ</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-5xl mx-auto w-full p-4 sm:p-6 flex-grow">
+
+        <!-- VIEW 1: HOME & SCAN -->
+        <div id="view-home" class="fade-in space-y-8">
+
+            <!-- Header / Scan Section -->
+            <div
+                class="bg-white rounded-2xl p-8 text-center shadow-lg border border-slate-200 relative overflow-hidden">
+                <h2 class="text-3xl font-extrabold text-slate-800 mb-2">Truy Xuất Nguồn Gốc</h2>
+                <p class="text-slate-500 mb-8">Quét mã QR để xem nhật ký Blockchain hoặc tạo sản phẩm mới để demo.</p>
+
+                <div class="flex flex-col sm:flex-row justify-center gap-4 relative z-10">
+                    <!-- Nút Quét -->
+                    <label for="qr-input"
+                        class="cursor-pointer bg-dark hover:bg-slate-800 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-qrcode"></i> Quét / Tải Ảnh QR
+                        <input type="file" id="qr-input" accept="image/*" class="hidden"
+                            onchange="handleQRUpload(this)">
+                    </label>
+
+                    <!-- Nút Tạo Mới -->
+                    <button onclick="openCreateModal()"
+                        class="cursor-pointer bg-primary hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus-circle"></i> Tạo Sản Phẩm Mới
+                    </button>
+                </div>
+
+                <div id="scan-loading" class="hidden text-sm text-primary font-medium animate-pulse mt-4">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i> Đang phân tích ảnh...
+                </div>
+            </div>
+
+            <!-- Product List -->
+            <div>
+                <div class="flex items-center justify-between mb-4 border-b pb-2">
+                    <h3 class="text-xl font-bold text-slate-700"><i class="fa-solid fa-list"></i> Danh sách sản phẩm
+                        (Demo)</h3>
+                    <span
+                        class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-bold border border-green-200">
+                        <i class="fa-solid fa-database"></i> LocalStorage Active
+                    </span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="product-list">
+                    <!-- Rendered via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: PRODUCT DETAIL -->
+        <div id="view-detail" class="hidden fade-in pb-20">
+            <!-- Top Bar Actions -->
+            <div
+                class="flex flex-wrap justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200 sticky top-20 z-40 gap-2">
+                <button onclick="goHome()"
+                    class="text-slate-500 hover:text-dark text-sm font-bold flex items-center gap-1">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="resetData()"
+                        class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-xs font-bold border border-slate-300 transition"
+                        title="Khôi phục dữ liệu hợp lệ gần nhất">
+                        <i class="fa-solid fa-rotate-right"></i> Reset (Undo Hack)
+                    </button>
+                    <button onclick="openUpdateModal()"
+                        class="bg-primary hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-sm transition flex items-center gap-1">
+                        <i class="fa-solid fa-pen-nib"></i> Cập nhật
+                    </button>
+                    <button onclick="openHackModal()"
+                        class="bg-invalid hover:bg-red-600 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-sm transition flex items-center gap-1">
+                        <i class="fa-solid fa-user-secret"></i> Hack Demo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Alert Area -->
+            <div id="verification-alert" class="mb-6"></div>
+
+            <!-- Product Content -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Column: Info -->
+                <div class="lg:col-span-1 space-y-6">
+                    <!-- Info Card -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <div class="border-b border-slate-100 pb-4 mb-4">
+                            <h1 class="text-2xl font-extrabold text-slate-800 leading-tight" id="detail-name">Product
+                                Name</h1>
+                            <p class="text-slate-400 text-sm font-mono mt-1" id="detail-id">#ID</p>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <p class="text-xs text-slate-400 uppercase font-bold">Lô sản xuất</p>
+                                <p class="font-semibold text-slate-800 text-lg" id="detail-batch">LOT-001</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-400 uppercase font-bold">Xuất xứ</p>
+                                <p class="font-semibold text-primary text-lg" id="detail-origin">Location</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-400 uppercase font-bold mb-2">Chứng nhận</p>
+                                <div class="flex flex-wrap gap-2" id="detail-certs"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Blockchain Stats -->
+                    <div class="bg-slate-50 rounded-2xl border border-slate-200 p-5">
+                        <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-link text-primary"></i> Blockchain Stats
+                        </h3>
+                        <div class="space-y-3 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Tổng số Block</span>
+                                <span class="font-mono font-bold" id="chain-length">0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Trạng thái chuỗi</span>
+                                <span class="font-bold text-valid" id="chain-status">Valid</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-500 block mb-1">Hash mới nhất</span>
+                                <div class="font-mono text-[10px] bg-white p-2 rounded border border-slate-200 break-all text-slate-600"
+                                    id="chain-hash">...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Timeline -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="font-bold text-xl text-slate-800 mb-6 flex items-center gap-2">
+                            <i class="fa-regular fa-clock"></i> Nhật ký hành trình
+                        </h3>
+                        <div class="timeline" id="timeline-container">
+                            <!-- JS Render -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CREATE PRODUCT MODAL -->
+    <div id="create-modal"
+        class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm fade-in">
+        <div class="bg-white rounded-2xl w-full max-w-lg p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="text-xl font-bold text-slate-800">🆕 Tạo Sản Phẩm Mới</h3>
+                <button onclick="closeModals()" class="text-slate-400 hover:text-slate-600"><i
+                        class="fa-solid fa-xmark fa-lg"></i></button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Mã sản phẩm (ID)</label>
+                    <input type="text" id="create-id" placeholder="VD: PROD-999"
+                        class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary outline-none uppercase font-mono">
+                    <p class="text-xs text-slate-500 mt-1">Mã này sẽ dùng để tạo QR Code.</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">Tên sản phẩm</label>
+                    <input type="text" id="create-name" placeholder="VD: Bánh Pía Sóc Trăng"
+                        class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Lô sản xuất</label>
+                        <input type="text" id="create-batch" placeholder="LOT-NEW-01"
+                            class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Xuất xứ</label>
+                        <input type="text" id="create-origin" placeholder="Địa điểm gốc"
+                            class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex gap-3 justify-end">
+                <button onclick="closeModals()"
+                    class="px-5 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-bold text-sm">Hủy</button>
+                <button onclick="processCreate()"
+                    class="px-5 py-2.5 bg-primary hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-lg">
+                    <i class="fa-solid fa-check"></i> Khởi tạo Blockchain
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UPDATE STATUS MODAL -->
+    <div id="update-modal"
+        class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm fade-in">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <h3 class="text-lg font-bold text-slate-800 mb-2">📝 Cập nhật trạng thái</h3>
+            <p class="text-sm text-slate-500 mb-4">Tạo một <strong>Block mới</strong> nối vào chuỗi. <br><span
+                    class="text-green-600 text-xs font-bold">Dữ liệu sẽ được lưu vĩnh viễn.</span></p>
+
+            <div class="space-y-3">
+                <label class="block text-sm font-medium text-slate-700">Trạng thái mới</label>
+                <select id="new-status-select"
+                    class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    <option value="Đang vận chuyển">🚚 Đang vận chuyển</option>
+                    <option value="Đã về kho phân phối">🏭 Đã về kho phân phối</option>
+                    <option value="Đang giao hàng">🛵 Đang giao hàng</option>
+                    <option value="Đã giao thành công">✅ Đã giao thành công</option>
+                </select>
+
+                <label class="block text-sm font-medium text-slate-700">Vị trí hiện tại</label>
+                <input type="text" id="new-location-input" value="Kho trung chuyển Quận 7, TP.HCM"
+                    class="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+            </div>
+
+            <div class="mt-6 flex gap-3 justify-end">
+                <button onclick="closeModals()"
+                    class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium text-sm">Hủy</button>
+                <button onclick="processUpdate()"
+                    class="px-4 py-2 bg-primary hover:bg-blue-700 text-white rounded-lg font-bold text-sm shadow-lg">Xác
+                    nhận & Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HACK SIMULATION MODAL -->
+    <div id="hack-modal"
+        class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm fade-in">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border-t-4 border-invalid">
+            <h3 class="text-lg font-bold text-invalid mb-2"><i class="fa-solid fa-user-secret"></i> Giả lập Tấn công
+            </h3>
+            <p class="text-sm text-slate-500 mb-4">Mô phỏng sửa dữ liệu gốc. Thay đổi này <strong>KHÔNG</strong> được
+                lưu vào Database (Để demo).</p>
+
+            <div class="bg-red-50 p-4 rounded-lg border border-red-100 mb-4">
+                <label class="block text-xs font-bold text-red-800 uppercase mb-1">Sửa Xuất Xứ</label>
+                <input type="text" id="hack-origin-input"
+                    class="w-full p-2 border border-red-300 rounded bg-white text-slate-800 focus:outline-none focus:border-invalid font-bold">
+                <p class="text-xs text-invalid mt-1 italic">Giá trị cũ: <span id="hack-origin-old">...</span></p>
+            </div>
+
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeModals()"
+                    class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium text-sm">Hủy</button>
+                <button onclick="processHack()"
+                    class="px-4 py-2 bg-invalid hover:bg-red-700 text-white rounded-lg font-bold text-sm shadow-lg">Thực
+                    hiện</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- STATE MANAGEMENT (WITH PERSISTENCE) ---
+        const DB_KEY = 'blocktrace_db_v1';
+        const DEFAULT_DB = [
+            {
+                id: "PROD-001",
+                name: "Cà phê Arabica Cầu Đất",
+                batch: "LOT-CF-2401",
+                origin: "Cầu Đất, Đà Lạt",
+                certs: ["VietGAP", "Organic"],
+                history: [
+                    { date: "15/01/2024", time: "07:30", action: "Thu hoạch tại nông trại", location: "Nông trại Cầu Đất", handler: "Nông hộ A" },
+                    { date: "16/01/2024", time: "10:00", action: "Sơ chế và đóng gói", location: "Nhà máy chế biến Lâm Đồng", handler: "Công ty X" }
+                ]
+            },
+            {
+                id: "PROD-002",
+                name: "Trà Oolong Bảo Lộc",
+                batch: "LOT-TEA-2402",
+                origin: "Bảo Lộc, Lâm Đồng",
+                certs: ["OCOP 4 Sao"],
+                history: [
+                    { date: "10/02/2024", time: "06:00", action: "Hái búp trà tươi", location: "Đồi trà Bảo Lộc", handler: "Nông hộ B" },
+                    { date: "11/02/2024", time: "14:00", action: "Sao khô thành phẩm", location: "Xưởng Trà Y", handler: "Kỹ thuật viên C" }
+                ]
+            }
+        ];
+
+        let MASTER_DB = [];
+
+        // --- PERSISTENCE FUNCTIONS ---
+        function initDB() {
+            const stored = localStorage.getItem(DB_KEY);
+            if (stored) {
+                MASTER_DB = JSON.parse(stored);
+            } else {
+                MASTER_DB = JSON.parse(JSON.stringify(DEFAULT_DB));
+                saveDB();
+            }
+        }
+
+        function saveDB() {
+            localStorage.setItem(DB_KEY, JSON.stringify(MASTER_DB));
+        }
+
+        function factoryReset() {
+            if (confirm("Bạn có chắc chắn muốn xóa toàn bộ dữ liệu đã tạo và quay về mặc định ban đầu?")) {
+                localStorage.removeItem(DB_KEY);
+                initDB();
+                renderHomeList();
+                alert("Đã khôi phục dữ liệu gốc của hệ thống!");
+            }
+        }
+
+        let currentProduct = null;
+        let traceabilityChain = null;
+
+        // --- BLOCKCHAIN CORE ---
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        class Block {
+            constructor(index, timestamp, data, previousHash = '') {
+                this.index = index;
+                this.timestamp = timestamp;
+                this.data = data;
+                this.previousHash = previousHash;
+                this.hash = '';
+            }
+            async mine() {
+                this.hash = await sha256(this.index + this.previousHash + this.timestamp + JSON.stringify(this.data));
+            }
+        }
+
+        class Blockchain {
+            constructor() {
+                this.chain = [];
+                this.valid = true;
+                this.corruptedBlockIndex = -1;
+            }
+            async init(historyData) {
+                const genesis = new Block(0, Date.now(), { action: "GENESIS BLOCK", location: "System" }, "0");
+                await genesis.mine();
+                this.chain.push(genesis);
+
+                for (let item of historyData) {
+                    await this.addBlock(item);
+                }
+            }
+            async addBlock(data) {
+                const prevBlock = this.chain[this.chain.length - 1];
+                const newBlock = new Block(this.chain.length, Date.now(), data, prevBlock.hash);
+                await newBlock.mine();
+                this.chain.push(newBlock);
+            }
+            async validate() {
+                this.valid = true;
+                this.corruptedBlockIndex = -1;
+                for (let i = 1; i < this.chain.length; i++) {
+                    const current = this.chain[i];
+                    const previous = this.chain[i - 1];
+                    const currentCheckHash = await sha256(current.index + current.previousHash + current.timestamp + JSON.stringify(current.data));
+                    if (current.hash !== currentCheckHash) { this.valid = false; this.corruptedBlockIndex = i; return false; }
+                    if (current.previousHash !== previous.hash) { this.valid = false; this.corruptedBlockIndex = i; return false; }
+                }
+                return true;
+            }
+        }
+
+        // --- NAVIGATION ---
+        function goHome() {
+            document.getElementById('view-home').classList.remove('hidden');
+            document.getElementById('view-detail').classList.add('hidden');
+            window.scrollTo(0, 0);
+            renderHomeList();
+        }
+
+        async function loadProduct(id) {
+            // Tìm trong MASTER_DB (đã load từ storage)
+            const rawProduct = MASTER_DB.find(p => p.id === id);
+            if (!rawProduct) { alert("Sản phẩm không tồn tại!"); return; }
+
+            // Deep Copy để thao tác
+            currentProduct = JSON.parse(JSON.stringify(rawProduct));
+
+            traceabilityChain = new Blockchain();
+            await traceabilityChain.init(currentProduct.history);
+
+            renderDetail();
+            document.getElementById('view-home').classList.add('hidden');
+            document.getElementById('view-detail').classList.remove('hidden');
+            window.scrollTo(0, 0);
+        }
+
+        async function resetData() {
+            if (!currentProduct) return;
+            // Reload từ MASTER_DB (nơi chứa dữ liệu hợp lệ đã lưu)
+            const original = MASTER_DB.find(p => p.id === currentProduct.id);
+            if (original) {
+                await loadProduct(original.id);
+                alert("Đã khôi phục dữ liệu hợp lệ từ Database!");
+            }
+        }
+
+        // --- UI RENDERERS ---
+        async function renderDetail() {
+            await traceabilityChain.validate();
+            const isValid = traceabilityChain.valid;
+
+            document.getElementById('detail-name').textContent = currentProduct.name;
+            document.getElementById('detail-id').textContent = "#" + currentProduct.id;
+            document.getElementById('detail-batch').textContent = currentProduct.batch;
+            document.getElementById('detail-origin').textContent = currentProduct.origin;
+
+            const certContainer = document.getElementById('detail-certs');
+            if (currentProduct.certs && currentProduct.certs.length > 0) {
+                certContainer.innerHTML = currentProduct.certs.map(c => `<span class="px-2 py-1 bg-green-50 text-green-700 border border-green-200 rounded text-xs font-bold">${c}</span>`).join('');
+            } else {
+                certContainer.innerHTML = '<span class="text-xs text-slate-400">Chưa có chứng nhận</span>';
+            }
+
+            const alertDiv = document.getElementById('verification-alert');
+            const statusEl = document.getElementById('chain-status');
+            const originEl = document.getElementById('detail-origin');
+
+            if (isValid) {
+                alertDiv.innerHTML = `
+                    <div class="bg-green-50 border-l-4 border-valid p-4 rounded-r-lg flex items-start gap-3 shadow-sm">
+                        <div class="text-valid text-xl"><i class="fa-solid fa-circle-check"></i></div>
+                        <div>
+                            <h4 class="font-bold text-green-800">Xác thực thành công</h4>
+                            <p class="text-sm text-green-700">Dữ liệu sản phẩm khớp hoàn toàn với nhật ký Blockchain.</p>
+                        </div>
+                    </div>`;
+                statusEl.textContent = "Valid (Hợp lệ)";
+                statusEl.className = "font-bold text-valid";
+                originEl.className = "font-semibold text-primary text-lg";
+            } else {
+                alertDiv.innerHTML = `
+                    <div class="bg-red-50 border-l-4 border-invalid p-4 rounded-r-lg flex items-start gap-3 shadow-sm animate-pulse">
+                        <div class="text-invalid text-xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        <div>
+                            <h4 class="font-bold text-red-800">CẢNH BÁO: DỮ LIỆU BỊ THAY ĐỔI</h4>
+                            <p class="text-sm text-red-700">Phát hiện sai lệch tại <strong>Block #${traceabilityChain.corruptedBlockIndex}</strong>.</p>
+                        </div>
+                    </div>`;
+                statusEl.textContent = "CORRUPTED";
+                statusEl.className = "font-bold text-invalid";
+                originEl.innerHTML = `${currentProduct.origin} <span class="text-xs bg-red-200 text-red-800 px-1 rounded ml-1">(Fake)</span>`;
+                originEl.className = "font-semibold text-invalid text-lg";
+            }
+
+            document.getElementById('chain-length').textContent = traceabilityChain.chain.length;
+            document.getElementById('chain-hash').textContent = traceabilityChain.chain[traceabilityChain.chain.length - 1].hash;
+
+            const timelineContainer = document.getElementById('timeline-container');
+            timelineContainer.innerHTML = traceabilityChain.chain.slice(1).map((block, idx) => {
+                const isCorrupted = !isValid && (idx + 1) >= traceabilityChain.corruptedBlockIndex;
+                const borderColor = isCorrupted ? 'border-invalid bg-red-50' : 'border-slate-200';
+                const iconColor = isCorrupted ? 'text-invalid' : 'text-primary';
+
+                return `
+                <div class="timeline-item">
+                    <div class="ml-8 p-4 bg-white rounded-lg border ${borderColor} shadow-sm hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="font-bold text-slate-800 text-base">${block.data.action}</span>
+                            <span class="text-xs text-slate-500 font-mono">${block.data.date} ${block.data.time || ''}</span>
+                        </div>
+                        <div class="text-sm text-slate-600 mb-2">
+                            <i class="fa-solid fa-location-dot w-4 text-center ${iconColor}"></i> ${block.data.location}
+                        </div>
+                        <div class="text-[10px] font-mono text-slate-400 break-all pt-2 border-t border-slate-100">
+                            Hash: ${block.hash}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderHomeList() {
+            const container = document.getElementById('product-list');
+            container.innerHTML = MASTER_DB.map(p => `
+                <div class="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition border border-slate-200 flex gap-4 items-center">
+                    <div class="w-24 h-24 flex-shrink-0 bg-white rounded-lg p-1 border border-slate-200 flex items-center justify-center">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${p.id}" class="w-full h-full object-contain" alt="QR">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-slate-800 truncate text-lg">${p.name}</h4>
+                        <p class="text-xs text-slate-500 font-mono bg-slate-100 inline-block px-1 rounded mb-1">ID: ${p.id}</p>
+                        <p class="text-xs text-primary"><i class="fa-solid fa-map-pin"></i> ${p.origin}</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Batch: ${p.batch}</p>
+                    </div>
+                    <button onclick="loadProduct('${p.id}')" class="bg-white text-primary border border-primary hover:bg-primary hover:text-white w-10 h-10 rounded-full flex items-center justify-center transition shadow-sm">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // --- MODALS ---
+        function closeModals() {
+            document.getElementById('update-modal').classList.add('hidden');
+            document.getElementById('hack-modal').classList.add('hidden');
+            document.getElementById('create-modal').classList.add('hidden');
+        }
+        function openUpdateModal() { document.getElementById('update-modal').classList.remove('hidden'); }
+        function openHackModal() {
+            document.getElementById('hack-origin-old').textContent = currentProduct.origin;
+            document.getElementById('hack-origin-input').value = currentProduct.origin;
+            document.getElementById('hack-modal').classList.remove('hidden');
+        }
+        function openCreateModal() {
+            document.getElementById('create-id').value = '';
+            document.getElementById('create-name').value = '';
+            document.getElementById('create-batch').value = '';
+            document.getElementById('create-origin').value = '';
+            document.getElementById('create-modal').classList.remove('hidden');
+        }
+
+        // --- ACTIONS ---
+        async function processCreate() {
+            const id = document.getElementById('create-id').value.trim().toUpperCase();
+            const name = document.getElementById('create-name').value.trim();
+            const batch = document.getElementById('create-batch').value.trim();
+            const origin = document.getElementById('create-origin').value.trim();
+
+            if (!id || !name || !batch || !origin) { alert("Vui lòng nhập đủ thông tin!"); return; }
+            if (MASTER_DB.find(p => p.id === id)) { alert("Mã ID này đã tồn tại!"); return; }
+
+            const newProduct = {
+                id, name, batch, origin,
+                certs: ["New Product"],
+                history: [
+                    {
+                        date: new Date().toLocaleDateString('vi-VN'),
+                        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+                        action: "Khởi tạo sản phẩm",
+                        location: origin,
+                        handler: "Admin Creator"
+                    }
+                ]
+            };
+
+            MASTER_DB.push(newProduct);
+            saveDB(); // LƯU VÀO LOCALSTORAGE
+            closeModals();
+            renderHomeList();
+
+            if (confirm("Đã tạo sản phẩm thành công! Bạn có muốn xem chi tiết ngay không?")) {
+                loadProduct(id);
+            }
+        }
+
+        async function processUpdate() {
+            const status = document.getElementById('new-status-select').value;
+            const location = document.getElementById('new-location-input').value;
+            const newEvent = {
+                date: new Date().toLocaleDateString('vi-VN'),
+                time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+                action: status, location: location, handler: "System Admin"
+            };
+
+            // 1. Cập nhật View hiện tại
+            await traceabilityChain.addBlock(newEvent);
+            currentProduct.history.push(newEvent);
+
+            // 2. Cập nhật DB tổng và LƯU LẠI
+            const dbIndex = MASTER_DB.findIndex(p => p.id === currentProduct.id);
+            if (dbIndex !== -1) {
+                MASTER_DB[dbIndex] = JSON.parse(JSON.stringify(currentProduct));
+                saveDB(); // Persistence
+            }
+
+            closeModals();
+            renderDetail();
+        }
+
+        async function processHack() {
+            const newOrigin = document.getElementById('hack-origin-input').value;
+            if (newOrigin === currentProduct.origin) { closeModals(); return; }
+
+            // HACK: Chỉ sửa dữ liệu trên view hiện tại (RAM), KHÔNG lưu vào DB
+            // Điều này để demo việc khi tải lại trang (Load từ DB chuẩn) thì dữ liệu lại đúng
+            currentProduct.origin = newOrigin;
+            if (traceabilityChain.chain.length > 1) {
+                traceabilityChain.chain[1].data.location = newOrigin + " (Fake)";
+            }
+
+            closeModals();
+            renderDetail();
+        }
+
+        // --- QR ---
+        function handleQRUpload(input) {
+            if (input.files && input.files[0]) {
+                const loading = document.getElementById('scan-loading');
+                loading.classList.remove('hidden');
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = img.width; canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const code = jsQR(imageData.data, imageData.width, imageData.height);
+                        loading.classList.add('hidden');
+                        if (code) {
+                            const id = code.data;
+                            const prod = MASTER_DB.find(p => p.id === id);
+                            if (prod) { loadProduct(id); }
+                            else { alert("Sản phẩm không tồn tại trong hệ thống!"); }
+                        } else { alert("Không tìm thấy mã QR!"); }
+                        input.value = '';
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // INIT
+        window.onload = () => {
+            initDB();
+            renderHomeList();
+        };
+    </script>
+</body>
+
+</html>
